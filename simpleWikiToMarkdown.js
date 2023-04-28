@@ -12,16 +12,20 @@ async function getSimpleWikiArticle(wikiPage) {
     const document = dom.window.document;
 
     // Remove all nodes including and after id="References"
-    const refsElem = document.querySelector('#References').parentElement;
+    const refsElem = document.querySelector('#References');
     if (refsElem) {
-        let sibling = refsElem.nextElementSibling;
-        refsElem.remove();
+        let sibling = refsElem.parentElement.nextElementSibling;
+        refsElem.parentElement.remove();
         while (sibling) {
             const nextSibling = sibling.nextElementSibling;
             sibling.remove();
             sibling = nextSibling;
         }
     }
+
+    // Remove nodes with "infobox" in the class
+    const infoBoxes = document.querySelectorAll('[class*="infobox"]');
+    infoBoxes.forEach((box) => box.remove());
 
     // Remove nodes with class="reference"
     const references = document.querySelectorAll('.reference');
@@ -40,7 +44,7 @@ async function getSimpleWikiArticle(wikiPage) {
                 return urlString.substring(urlString.indexOf('/wiki/') + 6);
             })
             .filter(wikiPage => {
-                return !wikiPage.includes(':');
+                return !(wikiPage.includes(':') || wikiPage.includes('/') || wikiPage.includes('#'));
               })
     );
 
@@ -80,10 +84,10 @@ async function getSimpleWikiMarkdown(wikiPage) {
 
     const markdown = convertToMarkdown(article.content);
     const source = `\n\n[Source](${wikiUrl})`;
-    const see_also = `\n\n## See also`;
-    const listOfLinks = linkedWikiPages.sorted().map(title => `\n[${title}](https://simple.wikipedia.org/wiki/${title})`).join('')
-    const content = `# ${article.title}\n\n${markdown}${source}${see_also}${listOfLinks}`;
-    return { content, linkedWikiPages };
+    const sortedLinkedWikiPages = Array.from(linkedWikiPages).sort();
+    const listOfLinks = sortedLinkedWikiPages.map(title => `\n\n[${title}](https://simple.wikipedia.org/wiki/${title})`).join('')
+    const fileContent = `# ${article.title}\n\n` + markdown + source + `\n\n## See also ${listOfLinks}`;
+    return { fileContent, linkedWikiPages };
 };
 
-export default getSimpleWikiMarkdown;
+module.exports = getSimpleWikiMarkdown;
