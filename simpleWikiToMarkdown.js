@@ -32,7 +32,7 @@ async function getSimpleWikiArticle(wikiPage) {
     editSections.forEach((section) => section.remove());
 
     // Make an array of all links with a URL beginning with /wiki/
-    const wikiLinks = new Set(
+    const linkedWikiPages = new Set(
         Array.from(document.querySelector('#bodyContent')
             .querySelectorAll('a[href^="/wiki/"]'))
             .map((anchor) => {
@@ -57,7 +57,7 @@ async function getSimpleWikiArticle(wikiPage) {
     const article = reader.parse();
 
     // Return the article and the set of URLs
-    return { article, wikiLinks };
+    return { article, linkedWikiPages };
 }
 
 function convertToMarkdown(html) {
@@ -74,17 +74,16 @@ async function saveAsMarkdownFile(filename, content) {
     await fs.writeFile(filename, content, 'utf-8');
 }
 
-
-(async () => {
-    const wikiPage = 'Planet';
+async function getSimpleWikiMarkdown(wikiPage) {
     const wikiUrl = `https://simple.wikipedia.org/wiki/${wikiPage}`;
-    const { article, wikiLinks } = await getSimpleWikiArticle(wikiPage);
+    const { article, linkedWikiPages } = await getSimpleWikiArticle(wikiPage);
 
     const markdown = convertToMarkdown(article.content);
-    const content = `# ${article.title}\n\n${markdown}\n\n[Source](${wikiUrl})`;
-    const filename = `${wikiPage}.md`;
-    await saveAsMarkdownFile(filename, content);
+    const source = `\n\n[Source](${wikiUrl})`;
+    const see_also = `\n\n## See also`;
+    const listOfLinks = linkedWikiPages.sorted().map(title => `\n[${title}](https://simple.wikipedia.org/wiki/${title})`).join('')
+    const content = `# ${article.title}\n\n${markdown}${source}${see_also}${listOfLinks}`;
+    return { content, linkedWikiPages };
+};
 
-    console.log('Wiki links:');
-    console.log(wikiLinks);
-})();
+export default getSimpleWikiMarkdown;
