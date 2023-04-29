@@ -2,6 +2,7 @@ const axios = require('axios');
 const { JSDOM } = require('jsdom');
 const { Readability } = require('@mozilla/readability');
 const TurndownService = require('turndown');
+const turndownPluginGfm = require('turndown-plugin-gfm')
 const fs = require('fs').promises;
 
 async function getSimpleWikiArticle(wikiPage) {
@@ -11,8 +12,43 @@ async function getSimpleWikiArticle(wikiPage) {
     const dom = new JSDOM(response.data, { url: wikiUrl });
     const document = dom.window.document;
 
-    // Remove all nodes including and after id="References"
-    const refsElem = document.querySelector('#References');
+    // Remove all nodes including and after appendices 
+    // https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Layout#Order_of_article_elements
+    let refsElem = document.querySelector('#Works');
+    if (!refsElem) {
+        refsElem = document.querySelector('#Publications');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#Discography');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#Filmography');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#Related_pages');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#See_also');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#Notes');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#Notes_and_references');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#References');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#Further_reading');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#External_links');
+    }
+    if (!refsElem) {
+        refsElem = document.querySelector('#Other_websites');
+    }
+
     if (refsElem) {
         let sibling = refsElem.parentElement.nextElementSibling;
         refsElem.parentElement.remove();
@@ -67,6 +103,7 @@ async function getSimpleWikiArticle(wikiPage) {
 function convertToMarkdown(html) {
     try {
         const turndownService = new TurndownService();
+        turndownService.use(turndownPluginGfm.tables)
         const markdown = turndownService.turndown(html);
         return markdown;
     } catch (error) {
